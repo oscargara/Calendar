@@ -1,0 +1,84 @@
+
+.calendar_div table tr td{
+	border:none;
+	padding:0.5em;
+}
+
+
+div.shadowbox {
+	padding: 0;
+	float: left;
+	display: block;
+	position: relative;
+	margin: 6px 0px 0px 6px !important;
+	background: url(../images/shadow.png) no-repeat bottom right !important;
+}
+
+div.shadowbox .calendar_div{
+	margin: -6px 6px 6px -6px;
+	position:relative;
+	display:block;
+	border: 1px solid rgb(204, 204, 204);
+}
+
+.dropbox {
+	border: 2px solid #DDD;
+	-moz-border-radius: 8px;
+	-webkit-border-radius: 8px;
+	background-color: #FEFFEC;
+	text-align: center;
+	color: #BBB;
+	font-size: 2em;
+	font-family: Arial, sans-serif;
+}
+
+.progressbar {
+	margin-left: 20px;
+	margin-right: 20px;
+	position: relative;
+	top: 75%;
+}
+
+.droplabel {
+	position: relative;
+	top: 40%;
+}
+
+.delete-image{
+    padding-left: 33px;
+    background: url(../images/danish/trash.png) no-repeat;
+    display:block;
+    height:33px;
+    position:absolute;
+    top:20px;
+    left:20px
+}
+
+a.next{
+background-image:url("../images/danish/forward_alt.png");
+background-repeat:repeat-x;
+color:#004080;
+font-family:sans-serif;
+font-weight:500;
+height:35px !important;
+padding-left:19px;
+text-decoration:none;
+width:13px !important;
+position:relative;
+top:250px;
+}
+
+a.prev{
+
+background-image:url("../images/danish/back_alt.png");
+background-repeat:repeat-x;
+color:#004080;
+font-family:sans-serif;
+font-weight:500;
+height:35px !important;
+padding-left:19px;
+text-decoration:none;
+width:13px !important;
+position:relative;
+top:250px;
+}
