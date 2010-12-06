@@ -2,73 +2,64 @@
 
 $(document).ready(function() {
     var uploads = [];
-    $(".dropable").each(function(i, val){
-        uploads[i] = new Upload(val.id);
+    $(".dropable").each(function(i, val){       
+        eval('var data='+$(val).attr('data'));
+        uploads[i] = new Upload(val.id, data);
     });
         
 });
 
-function Upload(element_id){
+function Upload(element_id, data){
 
     this.dragEnter = function (evt) {
 	evt.stopPropagation();
 	evt.preventDefault();
+        $(this).filter(".dropbox").addClass("glow_box");
     };
 
    this.dragExit = function (evt) {
 	evt.stopPropagation();
 	evt.preventDefault();
+        $(this).filter(".dropbox").removeClass("glow_box");
     };
 
     this.dragOver = function (evt) {
 	evt.stopPropagation();
 	evt.preventDefault();
-	
+        $(this).filter(".dropbox").addClass("glow_box");
     };
 
     this.drop = function drop(evt) {
-		evt.stopPropagation();
-		evt.preventDefault();
-		var files = evt.dataTransfer.files;
-		
-		////////////// TRY FF //////////////
-		var dt = evt.dataTransfer;
+	evt.stopPropagation();
+	evt.preventDefault();
 
-		var type = "text/x-moz-url-data";
-		try{
-			if (dt.mozGetDataAt(type, 0) !=null){
-				files = [{'name':dt.mozGetDataAt(type, 0), 'type':'url' }]
-			}
-			//console.log(dt.mozGetDataAt(type, 0));	
-		}catch(e){}	  		
-		///////////////////////////////////
-			
-		var count = files.length;
+	var files = evt.dataTransfer.files;
+	var count = files.length;
 
-		var _this = window.document["Upload_Instances"][this.getAttribute('handler')];
-		// Only call the handler if 1 or more files was dropped.
-		if (count > 0) 	_this.handleFiles(files);
+        var _this = window.document["Upload_Instances"][this.getAttribute('handler')];
+        // Only call the handler if 1 or more files was dropped.
+        _this.fileUpload(files[0]);
+
+	if (count > 0)
+		_this.handleFiles(files);
     };
 
     this.handleFiles = function(files) {
-		var file = files[0];
-		var $dropbox = $(this.element_id+" .dropbox");
-		var dropbox = $dropbox[0];
-		dropbox.innerHTML = "Processing " + file.name;
-		/*
-		this.handler = this;
-		if (file.type=='url') this.handleReaderLoadEnd({'target':{result:file.name}})
-		*/
-		var reader = new FileReader();
+	var file = files[0];
+	var $dropbox = $(this.element_id+" .dropbox");
+        var dropbox = $dropbox[0];
+	dropbox.innerHTML = "Processing " + file.name;
 
-		// init the reader event handlers
-		reader.onprogress = this.handleReaderProgress;
-		reader.onloadend = this.handleReaderLoadEnd;
+	var reader = new FileReader();
 
-		reader.handler = this;
+	// init the reader event handlers
+	reader.onprogress = this.handleReaderProgress;
+	reader.onloadend = this.handleReaderLoadEnd;
 
-		// begin the read operation
-		reader.readAsDataURL(file);
+        reader.handler = this;
+
+	// begin the read operation
+	reader.readAsDataURL(file);
     };
 
     this.handleReaderProgress = function (evt) {
@@ -82,13 +73,10 @@ function Upload(element_id){
 
     this.handleReaderLoadEnd = function (evt) {
         var _this = this.handler;
-	    _this.progressBar(100);
+	_this.progressBar(100);
 
-        $(_this.element_id+" img.preview").attr('src', evt.target.result);
-        var $dropbox = $(_this.element_id+" .dropbox");
-        $dropbox.hide();
-        $(_this.element_id+" img.preview").show();
-        $(_this.element_id+" .delete-image").show();
+         _this.putImage(evt.target.result, false);
+
     };
 
     this.progressBar = function (percentage){
@@ -98,12 +86,79 @@ function Upload(element_id){
 
     this.deleteImage = function(){
         var _this = window.document["Upload_Instances"][this.getAttribute('handler')];
-        $(_this.element_id+" .dropbox").html("Drop file here...");
-        $(_this.element_id+" img.preview").attr('src', '');
-        $(_this.element_id+" .dropbox").show();
-        $(_this.element_id+" img.preview").hide();
-        $(_this.element_id+" .delete-image").hide();
+
+        this._this = _this;
+        $.get(baseURL+'/calendar/deletePicture/'+_this.data.monthId, function(data) {
+            $(_this.element_id+" .dropbox").html("Drop file here...");
+            $(_this.element_id+" img.preview").attr('src', '');
+            $(_this.element_id+" .dropbox").show();
+            $(_this.element_id+" img.preview").hide();
+            $(_this.element_id+" .delete-image").hide();
+
+        });
+
     }
+
+    this.putImage = function(url, priority){
+        if (priority || $(this.element_id+" img.preview").attr('src')==''){
+            $(this.element_id+" img.preview").attr('src', url);
+        }
+        
+        var $dropbox = $(this.element_id+" .dropbox");
+        $dropbox.hide();
+        $(this.element_id+" img.preview").show();
+        $(this.element_id+" .delete-image").show();        
+    }
+
+
+    this.fileUpload = function(file) {
+       // Please report improvements to: marco.buratto at tiscali.it
+
+      var fileName = file.name;
+      var fileData = file.getAsBinary(); 
+
+      var boundary = "xxxxxxxxx";
+      var uri = baseURL+"/calendar/upload";
+
+      var xhr = new XMLHttpRequest();
+
+      xhr.open("POST", uri, true);
+
+      xhr.setRequestHeader("Content-Type", "multipart/form-data, boundary="+boundary); // simulate a file MIME POST request.
+
+      var _this = this;
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if ((xhr.status >= 200 && xhr.status <= 200) || xhr.status == 304) {
+            if (xhr.responseText != "") {
+              _this.putImage(baseURL+xhr.responseText, true);
+            }
+          }
+        }
+      }
+
+
+      var post = this.data;
+      var body = '';
+      for (var i in post){          
+          body += "--" + boundary + "\r\n";
+          body += 'Content-Disposition: form-data; name="'+i+'"\r\n\r\n';
+          body += post[i];
+          body += "\r\n";
+      }
+
+      body += "--" + boundary + "\r\n";
+      body += "Content-Disposition: form-data; name='uploadedfile'; filename='" + fileName + "'\r\n";
+      body += "Content-Type: application/octet-stream\r\n\r\n";
+      body += fileData + "\r\n";
+      body += "--" + boundary + "--";
+
+      xhr.setRequestHeader('Content-length', body.length);
+
+      xhr.sendAsBinary(body);
+      return true;
+    }
+
 
     this.init = function(){
         var $dropbox = $(this.element_id+" .dropbox");
@@ -113,7 +168,8 @@ function Upload(element_id){
 
         if (!('Upload_Instances' in window.document)) window.document["Upload_Instances"] = {};
         window.document["Upload_Instances"][this.element_id_original] = this;
-        
+
+        this._this = this;
 	// init event handlers
 	dropbox.addEventListener("dragenter", this.dragEnter, false);
 	dropbox.addEventListener("dragexit", this.dragExit, false);
@@ -125,11 +181,15 @@ function Upload(element_id){
         $(this.element_id+" .delete-image").attr('handler', this.element_id_original);
 
         this.progressBar(0);
+
+        if(this.data.url!='') this.putImage(baseURL+this.data.url, true)
     };
 
-    
+    this.data = data;
     this.element_id_original = element_id;
     this.element_id = "#"+element_id;
+
+    this._this = this;
 
     this.init();
 

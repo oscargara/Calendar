@@ -1,9 +1,26 @@
 
-.calendar_div table tr td{
-	border:none;
-	padding:0.5em;
+body, #doc3{
+    font-family: Helvetica, sans-serif;
+    padding: 0px;
+    margin: 0px;
+    background-color: #F0F0F0;
 }
 
+#hd{
+    background-color: #F0F0F0;
+    padding: 10px;
+    border-bottom: 2px solid #E0E0E0;
+}
+
+#bd{
+    background-color: #FFFFFF;
+    padding-top: 20px;
+}
+
+#ft{
+    background-color: #F0F0F0;
+    border-top: 2px solid #E0E0E0;
+}
 
 div.shadowbox {
 	padding: 0;
@@ -19,6 +36,7 @@ div.shadowbox .calendar_div{
 	position:relative;
 	display:block;
 	border: 1px solid rgb(204, 204, 204);
+    padding: 10px;
 }
 
 .dropbox {
@@ -81,4 +99,44 @@ text-decoration:none;
 width:13px !important;
 position:relative;
 top:250px;
+}
+
+.glow_box{
+    background-color: #FFFF99;
+}
+
+.weekday_labels th{
+    width: 14.28%;
+    border: 1px solid #000000;
+}
+
+.grey_day{
+    color: rgb(200,200,200);
+}
+
+table.month_calendar{
+    border-collapse: collapse;
+}
+
+able.month_calendar tr, table.month_calendar tr td{
+    border: 1px solid #000000;
+}
+
+table.month_calendar tr.month_name, table.month_calendar tr.month_name th{
+    border:none;
+}
+
+table.month_calendar tr td{
+vertical-align:text-top;
+    height: 33px;
+}
+
+.day_number{
+    text-align: right;
+    vertical-align:text-top;
+}
+
+.day_note{
+     text-align: left;
+     vertical-align:text-bottom;
 }
