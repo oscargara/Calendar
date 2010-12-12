@@ -44,34 +44,46 @@ class controller_Calendar extends core_Controller{
 
     public function upload(){
 
-        $user = model_User::getCurrentUser();
+        $filename = $this->config['webRoot']."/uploads/".time().rand(1000, 9999);
 
-        $calendar_id = $_POST['calendarId'];
-        $user_id = $user->_id;
-        $month = $_POST['month'];
-        $month_id = $_POST['monthId'];
-
-        $target_path = $this->config['webRoot']."/uploads/";
-        $filename = 'calendar_'.$calendar_id.'/'.$month."_original.jpg";
-        $filename_th = 'calendar_'.$calendar_id.'/'.$month."_th.jpg";
-        $filename_pdf = 'calendar_'.$calendar_id.'/'.$month."_pdf.jpg";
-
-        if (!file_exists(dirname($target_path.$filename))) mkdir(dirname($target_path.$filename));
-        if(move_uploaded_file($_FILES['uploadedfile']['tmp_name'], $target_path.$filename)) {
-
-            $this->_createthumb($target_path.$filename, $target_path.$filename_th, 400,300);
-            $this->_createthumb($target_path.$filename, $target_path.$filename_pdf, 3*400, 3*300);
-
-            $month_model = new model_Month();
-            $month_i= model_Month::findByIndex($month_id);
-            $month_i->url = '/uploads/calendar_'.$calendar_id.'/'.$month;
-            $month_i->save();
-            echo $month_i->url."_th.jpg";
-        } else{
-            echo 0;
+        if (isset($_POST['base64']) && $_POST['base64']) {
+            try{
+                move_uploaded_file($_FILES['uploadedfile']['tmp_name'], $filename);
+                $content = base64_decode(file_get_contents($filename));
+                file_put_contents($filename,$content);
+                return $this->_createImages($filename, $_POST['calendarId'], $_POST['month'], $_POST['monthId']);
+            }catch(Exception $e){
+                echo $e->getMessage();
+            }
+        }elseif(isset($_FILES['uploadedfile'])){
+            if(move_uploaded_file($_FILES['uploadedfile']['tmp_name'], $filename)) {
+                return $this->_createImages($filename, $_POST['calendarId'], $_POST['month'], $_POST['monthId']);
+            }
         }
     }
 
+
+    public function uploadURL(){
+        $url = $_POST['url'];
+        
+        /*
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        */
+        
+        $filename = $this->config['webRoot']."/uploads/".time().rand(1000, 9999);
+
+        $response = file_get_contents($url);
+        file_put_contents($filename, $response);
+
+        if(file_put_contents($filename, $response)) {
+            return $this->_createImages($filename, $_POST['calendarId'], $_POST['month'], $_POST['monthId']);
+        }
+
+    }
 
     public function addNote($month_id, $day){
         $note = $_POST['note'];
@@ -83,6 +95,9 @@ class controller_Calendar extends core_Controller{
 
     public function deletePicture($month_id){
         $month = model_Month::findByIndex($month_id);
+        @unlink($this->config['webRoot'].$month->url.'_original.jpg');
+        @unlink($this->config['webRoot'].$month->url.'_pdf.jpg');
+        @unlink($this->config['webRoot'].$month->url.'_th.jpg');
         $month->url = '';
         $month->save();
     }
@@ -147,6 +162,31 @@ class controller_Calendar extends core_Controller{
 
         $user->save();
     }
+
+    private function _createImages($original_file, $calendar_id, $month, $month_id){
+
+        $target_path = $this->config['webRoot']."/uploads/";
+        $filename = 'calendar_'.$calendar_id.'/'.$month."_original.jpg";
+        $filename_th = 'calendar_'.$calendar_id.'/'.$month."_th.jpg";
+        $filename_pdf = 'calendar_'.$calendar_id.'/'.$month."_pdf.jpg";
+
+        if (!file_exists(dirname($target_path.$filename))) mkdir(dirname($target_path.$filename));
+
+        if(rename($original_file, $target_path.$filename)) {
+
+            $this->_createthumb($target_path.$filename, $target_path.$filename_th, 400,300);
+            $this->_createthumb($target_path.$filename, $target_path.$filename_pdf, 3*400, 3*300);
+
+            $month_model = new model_Month();
+            $month_i= model_Month::findByIndex($month_id);
+            $month_i->url = '/uploads/calendar_'.$calendar_id.'/'.$month;
+            $month_i->save();
+            echo $month_i->url."_th.jpg";
+        } else{
+            echo 0;
+        }
+    }
+
 
     /*
         Function _createthumb($name,$filename,$new_w,$new_h)

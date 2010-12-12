@@ -2,7 +2,7 @@
 
 $(document).ready(function() {
     var uploads = [];
-    $(".dropable").each(function(i, val){       
+    $(".dropable").each(function(i, val){
         eval('var data='+$(val).attr('data'));
         uploads[i] = new Upload(val.id, data);
     });
@@ -11,85 +11,94 @@ $(document).ready(function() {
 
 function Upload(element_id, data){
 
-    this.dragEnter = function (evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
+    this.dragEnter = function (jquery_evt) {
+        var evt = jquery_evt.originalEvent;
+        evt.stopPropagation();
+        evt.preventDefault();
         $(this).filter(".dropbox").addClass("glow_box");
     };
 
-   this.dragExit = function (evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
+   this.dragExit = function (jquery_evt) {
+        var evt = jquery_evt.originalEvent;
+        evt.stopPropagation();
+        evt.preventDefault();
         $(this).filter(".dropbox").removeClass("glow_box");
     };
 
-    this.dragOver = function (evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
+    this.dragOver = function (jquery_evt) {
+        var evt = jquery_evt.originalEvent;
+        evt.stopPropagation();
+        evt.preventDefault();
         $(this).filter(".dropbox").addClass("glow_box");
     };
 
-    this.drop = function drop(evt) {
-	evt.stopPropagation();
-	evt.preventDefault();
+    this.drop = function drop(jquery_evt) {
+        var evt = jquery_evt.originalEvent;
+        var _this = jquery_evt.data._this;
+        
+        evt.stopPropagation();
+        evt.preventDefault();
 
-	var files = evt.dataTransfer.files;
-	var count = files.length;
+        if (evt.dataTransfer.getData("URL") != '' && evt.dataTransfer.getData("URL")!=undefined) {
+            _this.putImage(evt.dataTransfer.getData("URL"));            
+            _this.URLUpload(evt.dataTransfer.getData("URL"));
+            return;
+        }
 
-        var _this = window.document["Upload_Instances"][this.getAttribute('handler')];
-        // Only call the handler if 1 or more files was dropped.
-        _this.fileUpload(files[0]);
-
-	if (count > 0)
-		_this.handleFiles(files);
+        var files = evt.dataTransfer.files;
+        var count = files.length;
+        if (count){
+            // Only call the handler if 1 or more files was dropped.
+            _this.fileUpload(files[0]);
+            if (count > 0) _this.handleFiles(files);
+        }
+        
     };
 
     this.handleFiles = function(files) {
-	var file = files[0];
-	var $dropbox = $(this.element_id+" .dropbox");
-        var dropbox = $dropbox[0];
-	dropbox.innerHTML = "Processing " + file.name;
+        var file = files[0];
+        var $dropbox = $(this.element_id+" .dropbox span.droplabel");
+        
+        $dropbox.html("Processing " + file.name);
 
-	var reader = new FileReader();
+        var reader = new FileReader();
 
-	// init the reader event handlers
-	reader.onprogress = this.handleReaderProgress;
-	reader.onloadend = this.handleReaderLoadEnd;
+        // init the reader event handlers
+        reader.onprogress = this.handleReaderProgress;
+        reader.onloadend = this.handleReaderLoadEnd;
 
-        reader.handler = this;
+        reader._this = this;
 
-	// begin the read operation
-	reader.readAsDataURL(file);
+        // begin the read operation
+        reader.readAsDataURL(file);
     };
 
-    this.handleReaderProgress = function (evt) {
-        
-        var _this = this.handler;
-	if (evt.lengthComputable) {
-		var loaded = (evt.loaded / evt.total);
-                _this.progressBar(loaded * 100);
-	}
+    this.handleReaderProgress = function (evt) {        
+        if (evt.lengthComputable) {
+            var loaded = (evt.loaded / evt.total);
+            //this._this.progressBar(loaded * 100);
+        }
     };
 
     this.handleReaderLoadEnd = function (evt) {
-        var _this = this.handler;
-	_this.progressBar(100);
-
-         _this.putImage(evt.target.result, false);
+        var _this = this._this;
+        //_this.progressBar(100);
+        _this.putImage(evt.target.result, false);
 
     };
 
     this.progressBar = function (percentage){
-        //console.log(percentage);
-        $(this.element_id+" div .progressbar").width(percentage);
+        console.log(percentage);
+        $(this.element_id+" div .progressbar").width(percentage+'%');
     };
 
-    this.deleteImage = function(){
-        var _this = window.document["Upload_Instances"][this.getAttribute('handler')];
+    this.deleteImage = function(jquery_evt){
+
+        var _this = jquery_evt.data._this;
 
         this._this = _this;
         $.get(baseURL+'/calendar/deletePicture/'+_this.data.monthId, function(data) {
-            $(_this.element_id+" .dropbox").html("Drop file here...");
+            $(_this.element_id+" .dropbox span.droplabel").html("Drop file here...");
             $(_this.element_id+" img.preview").attr('src', '');
             $(_this.element_id+" .dropbox").show();
             $(_this.element_id+" img.preview").hide();
@@ -112,35 +121,49 @@ function Upload(element_id, data){
 
 
     this.fileUpload = function(file) {
-       // Please report improvements to: marco.buratto at tiscali.it
 
-      var fileName = file.name;
-      var fileData = file.getAsBinary(); 
+        var reader = new FileReader();
+        reader.onloadend = this.uploadData;
+        reader.onprogress = this.uploadPercentage;
+        reader._this = this;
+        reader._file = file;
+        reader.readAsBinaryString(file);
+        return;
+    }
 
+
+    this.uploadPercentage = function(evt) {
+        var loaded = (evt.loaded / evt.total);
+        this._this.progressBar(loaded * 100);        
+    }
+
+    this.uploadData = function(evt){
+      var _this = evt.target._this;
+      var fileData = evt.target.result;
+      var file = evt.target._file;
       var boundary = "xxxxxxxxx";
       var uri = baseURL+"/calendar/upload";
 
-      var xhr = new XMLHttpRequest();
-
-      xhr.open("POST", uri, true);
-
-      xhr.setRequestHeader("Content-Type", "multipart/form-data, boundary="+boundary); // simulate a file MIME POST request.
-
-      var _this = this;
+      var xhr = new XMLHttpRequest();     
+      
       xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
           if ((xhr.status >= 200 && xhr.status <= 200) || xhr.status == 304) {
-            if (xhr.responseText != "") {
-              _this.putImage(baseURL+xhr.responseText, true);
+            if (xhr.responseText != "") {                
+                _this.putImage(baseURL+xhr.responseText, true);
             }
           }
         }
       }
 
 
-      var post = this.data;
+      var post = _this.data;
       var body = '';
-      for (var i in post){          
+      if(xhr.sendAsBinary == null) {
+          post.base64=1;
+          fileData = window.btoa(fileData);
+      }
+      for (var i in post){
           body += "--" + boundary + "\r\n";
           body += 'Content-Disposition: form-data; name="'+i+'"\r\n\r\n';
           body += post[i];
@@ -148,36 +171,55 @@ function Upload(element_id, data){
       }
 
       body += "--" + boundary + "\r\n";
-      body += "Content-Disposition: form-data; name='uploadedfile'; filename='" + fileName + "'\r\n";
+      body += "Content-Disposition: form-data; name='uploadedfile'; filename='" + file.name + "'\r\n";
       body += "Content-Type: application/octet-stream\r\n\r\n";
       body += fileData + "\r\n";
       body += "--" + boundary + "--";
-
-      xhr.setRequestHeader('Content-length', body.length);
-
-      xhr.sendAsBinary(body);
+      
+      if(xhr.sendAsBinary != null) {
+            xhr.open("POST", uri, true);
+            xhr.setRequestHeader("Content-Type", "multipart/form-data, boundary="+boundary); // simulate a file MIME POST request.
+            xhr.setRequestHeader('Content-length', body.length);
+            xhr.sendAsBinary(body);
+      }else{
+            xhr.open('POST', uri+'?base64=1', true);
+            xhr.setRequestHeader("Content-Type", "multipart/form-data, boundary="+boundary); // simulate a file MIME POST request.
+            xhr.send(body);
+      }
+      
       return true;
+    }
+
+    this.URLUpload = function(URL){
+        
+        var data_post = this.data;
+        data_post.url = URL;
+
+        $.ajax({
+           type: "POST",
+           url: baseURL+'/calendar/uploadURL',
+           data: data_post,
+           context:this,
+           success: function(data){
+                this.putImage(baseURL+data, true);
+           }
+         });
+
     }
 
 
     this.init = function(){
         var $dropbox = $(this.element_id+" .dropbox");
-        var dropbox = $dropbox[0];
 
         $dropbox.attr('handler', this.element_id_original);
 
-        if (!('Upload_Instances' in window.document)) window.document["Upload_Instances"] = {};
-        window.document["Upload_Instances"][this.element_id_original] = this;
+        // init event handlers
+        $dropbox.bind( "dragenter", {_this:this}, this.dragEnter);
+        $dropbox.bind( "dragexit", {_this:this}, this.dragExit);
+        $dropbox.bind( "dragover", {_this:this}, this.dragOver);
+        $dropbox.bind( "drop", {_this:this}, this.drop);
 
-        this._this = this;
-	// init event handlers
-	dropbox.addEventListener("dragenter", this.dragEnter, false);
-	dropbox.addEventListener("dragexit", this.dragExit, false);
-	dropbox.addEventListener("dragover", this.dragOver, false);
-	dropbox.addEventListener("drop", this.drop, false);
-
-
-        $(this.element_id+" .delete-image").click(this.deleteImage);
+        $(this.element_id+" .delete-image").bind("click", {_this:this}, this.deleteImage);
         $(this.element_id+" .delete-image").attr('handler', this.element_id_original);
 
         this.progressBar(0);
@@ -189,9 +231,6 @@ function Upload(element_id, data){
     this.element_id_original = element_id;
     this.element_id = "#"+element_id;
 
-    this._this = this;
-
     this.init();
-
 
 }

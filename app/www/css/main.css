@@ -51,8 +51,7 @@ div.shadowbox .calendar_div{
 }
 
 .progressbar {
-	margin-left: 20px;
-	margin-right: 20px;
+    border-top: 4px solid red;
 	position: relative;
 	top: 75%;
 }

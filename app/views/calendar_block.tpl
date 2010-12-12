@@ -25,7 +25,7 @@ if ($next_month == 13) {
 $data = array('calendarId' => $this->calendar->_id,
               'month'      => $this->month_number,
               'monthId'    => $this->month->_id,
-              'url'        => $this->month->url.'_th.jpg'
+              'url'        => $this->month->url!='' ? $this->month->url.'_th.jpg' : ''
             );
 
 ?>
